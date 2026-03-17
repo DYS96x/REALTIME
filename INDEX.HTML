@@ -1,1 +1,13 @@
+<script>
 
+// 🌍 CREATE EARTH GLOBE
+const Globe = new ThreeGlobe({
+  animateIn: true
+})
+.globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
+.bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png');
+
+// Set globe size (important for later layers like atmosphere)
+Globe.scale.set(100, 100, 100);
+
+</script>
