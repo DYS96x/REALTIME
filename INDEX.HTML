@@ -1,17 +1,17 @@
+CODE
+MAP X  
+
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Civilisation Earth View</title>
+  <title>Civilisation Earth System</title>
 
   <style>
     body { margin: 0; overflow: hidden; background: black; }
     #globe { width: 100vw; height: 100vh; }
   </style>
 
-  <!-- Three.js -->
   <script src="https://unpkg.com/three@0.152.0/build/three.min.js"></script>
-
-  <!-- Globe -->
   <script src="https://unpkg.com/three-globe"></script>
 </head>
 
@@ -20,14 +20,14 @@
 
 <script>
 
-// 🌍 CREATE EARTH
+// 🌍 EARTH
 const Globe = new ThreeGlobe()
   .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
   .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png');
 
 Globe.scale.set(100, 100, 100);
 
-// 🎥 SCENE + CAMERA
+// 🎥 SCENE
 const scene = new THREE.Scene();
 scene.add(Globe);
 
@@ -35,24 +35,24 @@ const camera = new THREE.PerspectiveCamera(
   75,
   window.innerWidth/window.innerHeight,
   0.1,
-  2000
+  3000
 );
-camera.position.set(0, 50, 350);
+camera.position.set(0, 50, 400);
 
 // 💡 LIGHTING
 const ambientLight = new THREE.AmbientLight(0x222222, 0.5);
 scene.add(ambientLight);
 
-const light = new THREE.DirectionalLight(0xffffff, 0.3);
-light.position.set(200, 100, 300);
-scene.add(light);
+const mainLight = new THREE.DirectionalLight(0xffffff, 0.3);
+mainLight.position.set(200, 100, 300);
+scene.add(mainLight);
 
 // 🖥️ RENDERER
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.getElementById('globe').appendChild(renderer.domElement);
 
-// 🔵 ATMOSPHERE GLOW
+// 🔵 ATMOSPHERE
 const atmosphereGeometry = new THREE.SphereGeometry(102, 64, 64);
 
 const atmosphereMaterial = new THREE.ShaderMaterial({
@@ -78,17 +78,15 @@ const atmosphereMaterial = new THREE.ShaderMaterial({
 const atmosphereMesh = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
 scene.add(atmosphereMesh);
 
-// 🧑‍🚀 ASTRONAUT (simple placeholder)
+// 🧑‍🚀 ASTRONAUT
 const astronaut = new THREE.Group();
 
-// Helmet
 const helmet = new THREE.Mesh(
   new THREE.SphereGeometry(5, 32, 32),
   new THREE.MeshStandardMaterial({ color: 0xffffff })
 );
 astronaut.add(helmet);
 
-// Body
 const body = new THREE.Mesh(
   new THREE.CylinderGeometry(3, 3, 10, 32),
   new THREE.MeshStandardMaterial({ color: 0xdddddd })
@@ -96,26 +94,89 @@ const body = new THREE.Mesh(
 body.position.y = -8;
 astronaut.add(body);
 
-// Position astronaut (corner view)
-astronaut.position.set(-80, -40, 200);
+astronaut.position.set(-100, -50, 250);
 scene.add(astronaut);
 
-// 🎬 ANIMATION LOOP
+// 🌙 MOON (visual)
+const moonGeometry = new THREE.SphereGeometry(20, 32, 32);
+const moonMaterial = new THREE.MeshStandardMaterial({
+  color: 0xaaaaaa,
+  roughness: 1
+});
+const moon = new THREE.Mesh(moonGeometry, moonMaterial);
+scene.add(moon);
+
+// 🌙 MOON LIGHT (lamp effect)
+const moonLight = new THREE.PointLight(0x88ccff, 1.5, 2000);
+scene.add(moonLight);
+
+// 🌍🔥 CIVILISATION DATA
+let cities = [
+  { lat: 37.77, lng: -122.41, size: 1.5, color: 'cyan' },
+  { lat: 51.50, lng: -0.12, size: 1.2, color: 'lime' },
+  { lat: -33.86, lng: 151.20, size: 1.8, color: 'orange' },
+  { lat: 35.68, lng: 139.69, size: 2.0, color: 'purple' },
+  { lat: 48.85, lng: 2.35, size: 1.3, color: 'red' }
+];
+
+Globe
+  .pointsData(cities)
+  .pointAltitude('size')
+  .pointColor('color')
+  .pointsMerge(true);
+
+// 🔄 UPDATE CIVILISATIONS
+function updateCivilisations() {
+  cities.forEach(city => {
+    city.size += (Math.random() - 0.5) * 0.5;
+    if (city.size < 0.5) city.size = 0.5;
+    if (city.size > 3) city.size = 3;
+  });
+  Globe.pointsData(cities);
+}
+setInterval(updateCivilisations, 30000);
+
+// 🌙 ORBIT SYSTEM
+const moonDistance = 600;
+const moonSpeed = 0.0004;
+
+function updateMoon(time) {
+  const angle = time * moonSpeed;
+
+  const x = moonDistance * Math.cos(angle);
+  const z = moonDistance * Math.sin(angle);
+
+  moon.position.set(x, 0, z);
+  moonLight.position.set(x, 0, z);
+}
+
+// 🎬 ANIMATION
 function animate() {
   requestAnimationFrame(animate);
 
-  // Rotate Earth
+  const time = Date.now();
+
+  // Earth rotation
   Globe.rotation.y += 0.0015;
 
-  // Floating astronaut motion
-  astronaut.position.y += Math.sin(Date.now() * 0.002) * 0.05;
+  // Moon orbit
+  updateMoon(time);
+
+  // Pulse civilisation lights
+  cities.forEach(city => {
+    city.size += Math.sin(time * 0.002 + city.lat) * 0.01;
+  });
+  Globe.pointsData(cities);
+
+  // Astronaut floating
+  astronaut.position.y += Math.sin(time * 0.002) * 0.05;
 
   renderer.render(scene, camera);
 }
 
 animate();
 
-// 📱 RESPONSIVE FIX
+// 📱 RESIZE FIX
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
