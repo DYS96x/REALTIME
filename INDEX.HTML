@@ -1,13 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Civilisation Earth View</title>
+
+  <style>
+    body { margin: 0; overflow: hidden; background: black; }
+    #globe { width: 100vw; height: 100vh; }
+  </style>
+
+  <!-- Three.js -->
+  <script src="https://unpkg.com/three@0.152.0/build/three.min.js"></script>
+
+  <!-- Globe -->
+  <script src="https://unpkg.com/three-globe"></script>
+</head>
+
+<body>
+<div id="globe"></div>
+
 <script>
 
-// 🌍 CREATE EARTH GLOBE
-const Globe = new ThreeGlobe({
-  animateIn: true
-})
-.globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
-.bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png');
+// 🌍 CREATE EARTH
+const Globe = new ThreeGlobe()
+  .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
+  .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png');
 
-// Set globe size (important for later layers like atmosphere)
 Globe.scale.set(100, 100, 100);
 
+// 🎥 SCENE + CAMERA
+const scene = new THREE.Scene();
+scene.add(Globe);
+
+const camera = new THREE.PerspectiveCamera(
+  75,
+  window.innerWidth/window.innerHeight,
+  0.1,
+  2000
+);
+camera.position.set(0, 50, 350);
+
+// 💡 LIGHTING
+const ambientLight = new THREE.AmbientLight(0x222222, 0.5);
+scene.add(ambientLight);
+
+const light = new THREE.DirectionalLight(0xffffff, 0.3);
+light.position.set(200, 100, 300);
+scene.add(light);
+
+// 🖥️ RENDERER
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.getElementById('globe').appendChild(renderer.domElement);
+
+// 🔵 ATMOSPHERE GLOW
+const atmosphereGeometry = new THREE.SphereGeometry(102, 64, 64);
+
+const atmosphereMaterial = new THREE.ShaderMaterial({
+  vertexShader: `
+    varying vec3 vNormal;
+    void main() {
+      vNormal = normalize(normalMatrix * normal);
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    varying vec3 vNormal;
+    void main() {
+      float intensity = pow(0.7 - dot(vNormal, vec3(0,0,1.0)), 3.0);
+      gl_FragColor = vec4(0.2, 0.6, 1.0, 1.0) * intensity * 2.0;
+    }
+  `,
+  blending: THREE.AdditiveBlending,
+  side: THREE.BackSide,
+  transparent: true
+});
+
+const atmosphereMesh = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+scene.add(atmosphereMesh);
+
+// 🧑‍🚀 ASTRONAUT (simple placeholder)
+const astronaut = new THREE.Group();
+
+// Helmet
+const helmet = new THREE.Mesh(
+  new THREE.SphereGeometry(5, 32, 32),
+  new THREE.MeshStandardMaterial({ color: 0xffffff })
+);
+astronaut.add(helmet);
+
+// Body
+const body = new THREE.Mesh(
+  new THREE.CylinderGeometry(3, 3, 10, 32),
+  new THREE.MeshStandardMaterial({ color: 0xdddddd })
+);
+body.position.y = -8;
+astronaut.add(body);
+
+// Position astronaut (corner view)
+astronaut.position.set(-80, -40, 200);
+scene.add(astronaut);
+
+// 🎬 ANIMATION LOOP
+function animate() {
+  requestAnimationFrame(animate);
+
+  // Rotate Earth
+  Globe.rotation.y += 0.0015;
+
+  // Floating astronaut motion
+  astronaut.position.y += Math.sin(Date.now() * 0.002) * 0.05;
+
+  renderer.render(scene, camera);
+}
+
+animate();
+
+// 📱 RESPONSIVE FIX
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
 </script>
+</body>
+</html>
